@@ -6,7 +6,7 @@ import BookList from '../BookList';
 
 
 class Books extends Component {
-    constructor (props) {
+    constructor(props) {
         super(props);
         this.state = {
             books: [],
@@ -19,15 +19,16 @@ class Books extends Component {
         e.preventDefault();
         request
             .get("https://www.googleapis.com/books/v1/volumes")
-                .query({ q: this.state.searchField })
-                    .then ((data) => {
-                        console.log(data);
-                        this.setState({ books: [...data.body.items] })
-                    })
+            .query({ q: this.state.searchField })
+            .then((data) => {
+                console.log(data);
+                const cleanData = this.cleanData(data)
+                this.setState({ books: cleanData })
+            })
     }
 
     handleSearch = (e) => {
-        this.setState ({ searchField: e.target.value })
+        this.setState({ searchField: e.target.value })
     }
 
     handleSort = (e) => {
@@ -35,13 +36,38 @@ class Books extends Component {
         this.setState({ sort: e.target.value })
     }
 
-    render () {
+    cleanData = (data) => {
+        const cleanedData = data.body.items.map((book) => {
+            if(book.volumeInfo.hasOwnProperty('publishedDate')=== false) {
+                book.volumeInfo['publishedDate'] = '0000';
+            }
+
+            else if(book.volumeInfo.hasOwnProperty('imageLinks') === false) {
+                book.volumeInfo['imageLinks'] = {thumbnail: 'https://via.placeholder.com/300.png?text=No+image+available'}
+            }
+
+            return book
+        })
+
+        return cleanedData;
+    }
+
+    render() {
+        const sortedBooks = this.state.books.sort((a,b) =>{
+            if(this.state.sort === 'Newest') {
+                return parseInt(b.volumeInfo.publishedDate.substring(0,4)) - parseInt(a.volumeInfo.publishedDate.substring(0,4))
+            }
+            else if(this.state.sort === 'Oldest'){
+                return parseInt(a.volumeInfo.publishedDate.substring(0,4)) - parseInt(b.volumeInfo.publishedDate.substring(0,4))
+            }
+        })
+
         return (
             <div>
                 <SearchArea searchBook={ this.searchBook } handleSearch={ this.handleSearch } handleSort={ this.handleSort }/>
-                <BookList books={ this.state.books }/>
+                <BookList books={sortedBooks}/>
             </div>
-        );
+        )
     }
 }
 
